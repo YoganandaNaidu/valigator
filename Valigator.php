@@ -1,6 +1,6 @@
 <?php
 
-namespace App;
+namespace Fishfin;
 
 /**
  * Standalone data sanitization and validation class.
@@ -96,8 +96,15 @@ class Valigator
     protected $_filters = array();
 
     // Instance attribute containing errors from last run
+    //
+    // Each error message is of following form:
     // Will contain the following format if validation error encountered
-    // 'field1' => 'error message'
+    // 'field1' => [
+    //   'value' => 'value of field1 that was validated',
+    //   'errormsg' => 'validation error message',
+    //   'filter' => 'validation filter name which failed',
+    //   'args' => 'args passed to validation filter which failed',
+    // ]
     //
     // The error message is picked up in following order:
     //   - Custom error message set for field if internal validation used
@@ -105,7 +112,7 @@ class Valigator
     //   - Custom error message set in addCustomValidation if custom validation used
     //   - Custom error message set for field if custom validation used
     //
-    // Following replacements are done automatically in the error message:
+    // Following replacements can be done automatically in the error message:
     // {field}   : label of the field validated.
     // {value}   : value the field held when it was validated. If value was not
     //             set, 'empty' (without quotes) will be printed. If value
@@ -114,8 +121,8 @@ class Valigator
     // {args}    : comma-delimited args list as string
     // {arg<n>}  : argument passed to filter, where <n> is a valid argument
     //             number.
-    //      
-    protected $_validationErrors = array();
+    //
+    protected $_validationErrorLog = array();
 
     // Validation rules for execution
     protected $validation_rules = array();
@@ -221,7 +228,7 @@ class Valigator
      */
     public function __toString()
     {
-        return $this->get_readable_errors(true);
+        return $this->getValidationErrors();
     }
 
     /**
@@ -236,11 +243,11 @@ class Valigator
         $fields = array_keys($mismatch);
 
         foreach ($fields as $field) {
-            $this->_validationErrors[] = array(
+            $this->_validationErrorLog[] = array(
                 'field' => $field,
                 'value' => $data[$field],
-                'rule' => 'mismatch',
-                'param' => null,
+                'filter' => 'mismatch',
+                'args' => array(),
             );
         }
     }
@@ -400,6 +407,25 @@ class Valigator
     }
 
     /**
+     * Gets field value from input
+     * 
+     * @param string $field
+     * @param mixed $input
+     *
+     * @return string
+     */
+    private static function _getFieldValueFromInput(string $field, $input)
+    {
+        $fieldValue = is_array($input)
+                ? (($field != '' && array_key_exists($field, $input)) //isset($input[$field]))
+                        ? $input[$field]
+                        : '')
+                : (string) $input;
+        
+        return $fieldValue;
+    }
+
+    /**
      * Function to create and return previously created instance
      *
      * @return Valigator
@@ -441,36 +467,58 @@ class Valigator
      * @param mixed  $input (which has field => value) or value
      * @param string $filter
      * @param array  $args
+     * @param string $fieldSpan (inject span around {field})
+     * @param string $valueSpan (inject span around {value})
+     * @param string $filterSpan (inject span around {filter})
+     * @param string $argSpan (inject span around {args}, {arg1} etc.)
      *
      * @return string Converted error message
      */
-    private function _readableErrorMsg(string $errorMsg, string $field = ''
-            , $input = NULL, string $filter = '', array $args = array())
+    private function _readableErrorMsg(string $errorMsg, string $field
+            , $value = '', string $filter = '', array $args = array()
+            , string $errormsgSpan = '', string $fieldSpan = ''
+            , string $valueSpan = '', string $filterSpan = ''
+            , string $argSpan = '')
     {
-        $errorMsg = str_replace('{field}', $this->_filters[$field]['label']
-                , $errorMsg);
-
-        $errorMsg = str_replace('{filter}', $filter, $errorMsg);
-
-        $errorMsg = str_replace('{args}', implode($this->_argsDelimiter, $args), $errorMsg);
-
-        foreach ($args as $index => $arg) {
-            $argIndex = $index + 1;
-            $errorMsg = str_replace("{arg{$argIndex}}", $arg, $errorMsg);
+        $spanTags = array();
+        foreach (['errormsg', 'field', 'value', 'filter', 'arg'] as $element) {
+            $spanVar = "{$element}Span";
+            $spanTags[$element] = ($$spanVar == '')
+                    ? ['', '']
+                    : ["<span {$$spanVar}>", "</span>"];
         }
 
-        $value = is_array($input)
-                ? (($field != '' && isset($input[$field]))
-                        ? $input[$field]
-                        : '')
-                : (string) $input;
+        $errorMsg = str_replace('{field}'
+                , $spanTags['field'][0] . $this->_filters[$field]['label']
+                        . $spanTags['field'][1]
+                , $errorMsg);
+
         if ($value == '') {
             $value = 'empty';
         }
+        $errorMsg = str_replace('{value}'
+                , $spanTags['value'][0] . $value . $spanTags['value'][1]
+                , $errorMsg);
 
-        $errorMsg = str_replace('{value}', $value, $errorMsg);
+        $errorMsg = str_replace('{filter}'
+                , $spanTags['filter'][0] . $filter . $spanTags['filter'][1]
+                , $errorMsg);
 
-        return $errorMsg;            
+        $errorMsg = str_replace('{args}'
+                , $spanTags['arg'][0]
+                    . implode($spanTags['arg'][1]
+                            . $this->_argsDelimiter . $spanTags['arg'][0], $args)
+                    . $spanTags['arg'][1]
+                , $errorMsg);
+
+        foreach ($args as $index => $arg) {
+            $argIndex = $index + 1;
+            $errorMsg = str_replace("{arg{$argIndex}}"
+                    , $spanTags['arg'][0] . $arg . $spanTags['arg'][1]
+                    , $errorMsg);
+        }
+
+        return $spanTags['errormsg'][0] . $errorMsg . $spanTags['errormsg'][1];      
     }
 
     /**
@@ -639,9 +687,30 @@ class Valigator
      *
      * @return array
      */
-    public function getValidationErrors()
+    public function getValidationErrors(string $errorDelimiter = NULL)
     {
-        return $this->_validationErrors;
+        $validationErrors = array();
+
+        foreach ($this->_validationErrorLog as $validationErrorAt) {
+            $validationErrors[] = [
+                $validationErrorAt['field'] => $this->_readableErrorMsg(
+                        $validationErrorAt['errormsg']
+                        , $validationErrorAt['field']
+                        , $validationErrorAt['value']
+                        , $validationErrorAt['filter']
+                        , $validationErrorAt['args']
+                        , 'style="color:magenta"'
+                        , 'style="color:red"'
+                        , 'style="color:blue"'
+                        , 'style="color:pink"'
+                        , 'style="color:yellow"')
+            ];
+        }
+        
+        if ($errorDelimiter !== NULL) {
+            $validationErrors = implode($errorDelimiter, $validationErrors);
+        }
+        return $validationErrors;
     }
 
     /**
@@ -674,7 +743,7 @@ class Valigator
         $valigator->validations($validators);
 
         if ($valigator->run($data) === false) {
-            return $valigator->get_readable_errors(false);
+            return $valigator->getValidationErrors();
         } else {
             return true;
         }
@@ -906,7 +975,7 @@ class Valigator
      */
     public function runValidations(array $input)
     {
-        $this->_validationErrors = array();
+        $this->_validationErrorLog = array();
 
         foreach ($this->_filters as $field => $fieldFilters) {
             if (!isset($fieldFilters['validations'])) {
@@ -959,9 +1028,13 @@ class Valigator
                 if (!$validationPassed) {
                     foreach($validationErrorMsg as $errorMsg) {
                         if ($errorMsg != '') {
-                            $this->_validationErrors[] = [
-                                    $field => $this->_readableErrorMsg($errorMsg
-                                            , $field, $input, $filter, $args)];
+                            $this->_validationErrorLog[] = [
+                                'args' => $args,
+                                'errormsg' => $errorMsg,
+                                'field' => $field,
+                                'filter' => $filter,
+                                'value' => $this->_getFieldValueFromInput($field, $input),
+                            ];
                             break;
                         }
                     }
@@ -969,8 +1042,8 @@ class Valigator
             }
         }
 
-        return (count($this->_validationErrors) > 0)
-                    ? $this->_validationErrors
+        return (count($this->_validationErrorLog) > 0)
+                    ? $this->_validationErrorLog
                     : TRUE;
     }
 
@@ -986,224 +1059,6 @@ class Valigator
     protected function shouldRunValidation(array $input, $rules, $field)
     {
         return in_array('required', $rules) || (isset($input[$field]) && trim($input[$field]) != '');
-    }
-
-    /**
-     * Process the validation errors and return human readable error messages.
-     *
-     * @param bool   $convert_to_string = false
-     * @param string $field_class
-     * @param string $error_class
-     *
-     * @return array
-     * @return string
-     */
-    public function get_readable_errors($convert_to_string = false
-            , $field_class = 'valigator-field'
-            , $error_class = 'valigator-error-message')
-    {
-        if (empty($this->_validationErrors)) {
-            return ($convert_to_string) ? null : array();
-        }
-
-        $resp = array();
-
-        foreach ($this->_validationErrors as $e) {
-            $field = ucwords(str_replace(array("_", "-"), chr(32), $e['field']));
-            $param = $e['param'];
-
-            // Let's fetch explicit field names if they exist
-            if (array_key_exists($e['field'], self::$fields)) {
-                $field = self::$fields[$e['field']];
-            }
-
-            switch ($e['rule']) {
-                case 'mismatch' :
-                    $resp[] = "There is no validation rule for <span class=\"$field_class\">$field</span>";
-                    break;
-                case 'validate_required' :
-                    $resp[] = "The <span class=\"$field_class\">$field</span> field is required";
-                    break;
-                case 'validate_valid_email':
-                    $resp[] = "The <span class=\"$field_class\">$field</span> field is required to be a valid email address";
-                    break;
-                case 'validate_max_len':
-                    $resp[] = "The <span class=\"$field_class\">$field</span> field needs to be $param or shorter in length";
-                    break;
-                case 'validate_min_len':
-                    $resp[] = "The <span class=\"$field_class\">$field</span> field needs to be $param or longer in length";
-                    break;
-                case 'validate_exact_len':
-                    $resp[] = "The <span class=\"$field_class\">$field</span> field needs to be exactly $param characters in length";
-                    break;
-                case 'validate_numeric':
-                    $resp[] = "The <span class=\"$field_class\">$field</span> field may only contain numeric characters";
-                    break;
-                case 'validate_integer':
-                    $resp[] = "The <span class=\"$field_class\">$field</span> field may only contain a numeric value";
-                    break;
-                case 'validate_boolean':
-                    $resp[] = "The <span class=\"$field_class\">$field</span> field may only contain a true or false value";
-                    break;
-                case 'validate_float':
-                    $resp[] = "The <span class=\"$field_class\">$field</span> field may only contain a float value";
-                    break;
-                case 'validate_valid_url':
-                    $resp[] = "The <span class=\"$field_class\">$field</span> field is required to be a valid URL";
-                    break;
-                case 'validate_url_exists':
-                    $resp[] = "The <span class=\"$field_class\">$field</span> URL does not exist";
-                    break;
-                case 'validate_valid_ip':
-                    $resp[] = "The <span class=\"$field_class\">$field</span> field needs to contain a valid IP address";
-                    break;
-                case 'validate_valid_cc':
-                    $resp[] = "The <span class=\"$field_class\">$field</span> field needs to contain a valid credit card number";
-                    break;
-                case 'validate_valid_name':
-                    $resp[] = "The <span class=\"$field_class\">$field</span> field needs to contain a valid human name";
-                    break;
-                case 'validate_contains':
-                    $resp[] = "The <span class=\"$field_class\">$field</span> field needs to contain one of these values: ".implode(', ', $param);
-                    break;
-                case 'validate_contains_list':
-                    $resp[] = "The <span class=\"$field_class\">$field</span> field needs to contain a value from its drop down list";
-                    break;
-                case 'validate_doesnt_contain_list':
-                    $resp[] = "The <span class=\"$field_class\">$field</span> field contains a value that is not accepted";
-                    break;
-                case 'validate_street_address':
-                    $resp[] = "The <span class=\"$field_class\">$field</span> field needs to be a valid street address";
-                    break;
-                case 'validate_date':
-                    $resp[] = "The <span class=\"$field_class\">$field</span> field needs to be a valid date";
-                    break;
-                case 'validate_min_numeric':
-                    $resp[] = "The <span class=\"$field_class\">$field</span> field needs to be a numeric value, equal to, or higher than $param";
-                    break;
-                case 'validate_max_numeric':
-                    $resp[] = "The <span class=\"$field_class\">$field</span> field needs to be a numeric value, equal to, or lower than $param";
-                    break;
-                case 'validate_starts':
-                    $resp[] = "The <span class=\"$field_class\">$field</span> field needs to start with $param";
-                    break;
-                case 'validate_extension':
-                    $resp[] = "The <span class=\"$field_class\">$field</span> field can have the following extensions $param";
-                    break;
-                case 'validate_required_file':
-                    $resp[] = "The <span class=\"$field_class\">$field</span> field is required";
-                    break;
-                case 'validate_equalsfield':
-                    $resp[] = "The <span class=\"$field_class\">$field</span> field does not equal $param field";
-                    break;
-                case 'validate_min_age':
-                    $resp[] = "The <span class=\"$field_class\">$field</span> field needs to have an age greater than or equal to $param";
-                    break;
-                default:
-                    $resp[] = "The <span class=\"$field_class\">$field</span> field is invalid";
-            }
-        }
-
-        if (!$convert_to_string) {
-            return $resp;
-        } else {
-            $buffer = '';
-            foreach ($resp as $s) {
-                $buffer .= "<span class=\"$error_class\">$s</span>";
-            }
-
-            return $buffer;
-        }
-    }
-
-    /**
-     * Process the validation errors and return an array of errors with field names as keys.
-     *
-     * @param $convert_to_string
-     *
-     * @return array | null (if empty)
-     */
-    public function get_errors_array($convert_to_string = NULL)
-    {
-        if (empty($this->_validationErrors)) {
-            return ($convert_to_string) ? null : array();
-        }
-
-        $resp = array();
-
-        foreach ($this->_validationErrors as $e) {
-            $field = ucwords(str_replace(array('_', '-'), chr(32), $e['field']));
-            $param = $e['param'];
-
-            // Let's fetch explicit field names if they exist
-            if (array_key_exists($e['field'], self::$fields)) {
-                $field = self::$fields[$e['field']];
-            }
-
-            switch ($e['rule']) {
-                case 'mismatch' :
-                    $resp[$field] = "There is no validation rule for $field";
-                    break;
-                case 'validate_max_len':
-                    $resp[$field] = "The $field field needs to be $param or shorter in length";
-                    break;
-                case 'validate_min_len':
-                    $resp[$field] = "The $field field needs to be $param or longer in length";
-                    break;
-                case 'validate_numeric':
-                    $resp[$field] = "The $field field may only contain numeric characters";
-                    break;
-                case 'validate_integer':
-                    $resp[$field] = "The $field field may only contain a numeric value";
-                    break;
-                case 'validate_float':
-                    $resp[$field] = "The $field field may only contain a float value";
-                    break;
-                case 'validate_valid_url':
-                    $resp[$field] = "The $field field is required to be a valid URL";
-                    break;
-                case 'validate_url_exists':
-                    $resp[$field] = "The $field URL does not exist";
-                    break;
-                case 'validate_valid_ip':
-                    $resp[$field] = "The $field field needs to contain a valid IP address";
-                    break;
-                case 'validate_valid_cc':
-                    $resp[$field] = "The $field field needs to contain a valid credit card number";
-                    break;
-                case 'validate_valid_name':
-                    $resp[$field] = "The $field field needs to contain a valid human name";
-                    break;
-                case 'validate_contains':
-                    $resp[$field] = "The $field field needs to contain one of these values: ".implode(', ', $param);
-                    break;
-                case 'validate_contains_list':
-                    $resp[$field] = "The $field field needs to contain a value from its drop down list";
-                    break;
-                case 'validate_doesnt_contain_list':
-                    $resp[$field] = "The $field field contains a value that is not accepted";
-                    break;
-                case 'validate_street_address':
-                    $resp[$field] = "The $field field needs to be a valid street address";
-                    break;
-                case 'validate_date':
-                    $resp[$field] = "The $field field needs to be a valid date";
-                    break;
-                case 'validate_min_numeric':
-                    $resp[$field] = "The $field field needs to be a numeric value, equal to, or higher than $param";
-                    break;
-                case 'validate_max_numeric':
-                    $resp[$field] = "The $field field needs to be a numeric value, equal to, or lower than $param";
-                    break;
-                case 'validate_min_age':
-                    $resp[$field] = "The $field field needs to have an age greater than or equal to $param";
-                    break;
-                default:
-                    $resp[$field] = "The $field field is invalid";
-            }
-        }
-
-        return $resp;
     }
 
     // ** ------------------------- Filters --------------------------------------- ** //
