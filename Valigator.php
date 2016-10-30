@@ -1,6 +1,6 @@
 <?php
 
-namespace Fishfin;
+namespace App;
 
 /**
  * Standalone data sanitization and validation class.
@@ -21,6 +21,10 @@ namespace Fishfin;
  */
 class Valigator
 {
+    // Filter arguments delimiter default, can be modified using
+    // setArgsDelimiter()
+    protected $_argsDelimiter = ', ';
+
     // Customer sanitization methods
     protected static $_customSanitizations = array();
 
@@ -448,7 +452,7 @@ class Valigator
 
         $errorMsg = str_replace('{filter}', $filter, $errorMsg);
 
-        $errorMsg = str_replace('{args}', implode(', ', $args), $errorMsg);
+        $errorMsg = str_replace('{args}', implode($this->_argsDelimiter, $args), $errorMsg);
 
         foreach ($args as $index => $arg) {
             $argIndex = $index + 1;
@@ -714,6 +718,20 @@ class Valigator
       } else {
         return $default;
       }
+    }
+
+    /**
+     * Updates the filter arguments delimiter.
+     *
+     * @param string   $argsDelimiter
+     *
+     * @return object
+     */
+    public function setArgsDelimiter(string $argsDelimiter)
+    {
+        $this->_argsDelimiter = $argsDelimiter;
+        
+        return $this;  // returning object to facilitate chaining
     }
 
     /**
