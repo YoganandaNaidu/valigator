@@ -984,7 +984,9 @@ class Valigator
      * @return array
      * @return string
      */
-    public function get_readable_errors($convert_to_string = false, $field_class = 'valigator-field', $error_class = 'valigator-error-message')
+    public function get_readable_errors($convert_to_string = false
+            , $field_class = 'valigator-field'
+            , $error_class = 'valigator-error-message')
     {
         if (empty($this->_validationErrors)) {
             return ($convert_to_string) ? null : array();
