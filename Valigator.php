@@ -864,25 +864,32 @@ class Valigator
                     $args = $argsSynonyms = NULL;
                 }
 
-                if ($filter == 'default') {
-                    $method = "sanitize_{$filter}";
-                    $value = isset($input[$field]) ? $input[$field] : NULL;
-                    $input[$field] = $this->$method($value, $argsSynonyms);                    
-                } elseif (isset(self::$_customSanitizations[$filter])) {
-                    $input[$field] = call_user_func(self::$_customSanitizations[$filter]
-                            , $input[$field], $argsSynonyms);
-                } elseif (is_callable(array($this, "sanitize_{$filter}"))) {
-                    $method = "sanitize_{$filter}";
-                    $input[$field] = $this->$method($input[$field], $argsSynonyms);
-                } elseif (is_callable(array($this, "sanitize_{$filterSynonym}"))) {
-                    $method = "sanitize_{$filterSynonym}";
-                    $input[$field] = $this->$method($input[$field], $argsSynonyms);
-                } elseif (function_exists($filter)) {
-                    $input[$field] = $filter($input[$field]);
-                } elseif (function_exists($filterSynonym)) {
-                    $input[$field] = $filterSynonym($input[$field]);
-                } else {
-                    throw new Exception("Sanitization filter {$filter} does not exist.");
+                switch (TRUE) {
+                    case ($filter == 'default'):
+                        $method = "sanitize_{$filter}";
+                        $value = isset($input[$field]) ? $input[$field] : NULL;
+                        $input[$field] = $this->$method($value, $argsSynonyms);                    
+                        break;
+                    case (isset(self::$_customSanitizations[$filter])):
+                        $input[$field] = call_user_func(self::$_customSanitizations[$filter]
+                                , $input[$field], $argsSynonyms);
+                        break;
+                    case (is_callable(array($this, "sanitize_{$filter}"))):
+                        $method = "sanitize_{$filter}";
+                        $input[$field] = $this->$method($input[$field], $argsSynonyms);
+                        break;
+                    case (is_callable(array($this, "sanitize_{$filterSynonym}"))):
+                        $method = "sanitize_{$filterSynonym}";
+                        $input[$field] = $this->$method($input[$field], $argsSynonyms);
+                        break;
+                    case (function_exists($filter)):
+                        $input[$field] = $filter($input[$field]);
+                        break;
+                    case (function_exists($filterSynonym)):
+                        $input[$field] = $filterSynonym($input[$field]);
+                        break;
+                    default:
+                        throw new Exception("Sanitization filter {$filter} does not exist.");
                 }
             }
         }
@@ -921,25 +928,32 @@ class Valigator
                 }
 
                 $validationErrorMsg = array();
-                if (isset(self::$_customValidations[$filter]['callback'])) {
-                    $validationPassed = call_user_func(self::$_customValidations[$filter]['callback']
-                            , $field, $input, $argsSynonyms);
-                    if (!$validationPassed) {
-                        $validationErrorMsg[] = $fieldFilter['errormsg'];
-                        $validationErrorMsg[] = self::$_customValidations[$filter]['errormsg'];
-                        $validationErrorMsg[] = $this->_validationErrorMsgs['default_long'];
-                    }
-                } elseif (is_callable(array($this, $method = "validate_{$filter}"))
-                          || is_callable(array($this, $method = "validate_{$filterSynonym}"))) {
-                    //$method = "validate_{$filter}";
-                    $validationPassed = $this->$method($field, $input, $argsSynonyms);
-                    if (!$validationPassed) {
-                        $validationErrorMsg[] = $fieldFilter['errormsg'];
-                        $validationErrorMsg[] = $this->_getValidationErrorMsg($filter);
-                    }
-                } else {
-                    $validationPassed = FALSE;
-                    $validationErrorMsg[] = $this->_getValidationErrorMsg('inexistent_validation');
+
+                switch (TRUE) {
+                    case (isset(self::$_customValidations[$filter]['callback'])):
+                        $validationPassed = call_user_func(
+                                self::$_customValidations[$filter]['callback']
+                                , $field, $input, $argsSynonyms);
+                        if (!$validationPassed) {
+                            $validationErrorMsg[] = $fieldFilter['errormsg'];
+                            $validationErrorMsg[] = self::$_customValidations[$filter]['errormsg'];
+                            $validationErrorMsg[] = $this->_validationErrorMsgs['default_long'];
+                        }
+                        break;
+                    case (is_callable(array($this, $method = "validate_{$filter}"))
+                          || is_callable(array($this, $method = "validate_{$filterSynonym}"))):
+                        //$method = "validate_{$filter}";
+                        $validationPassed = $this->$method($field, $input, $argsSynonyms);
+                        if (!$validationPassed) {
+                            $validationErrorMsg[] = $fieldFilter['errormsg'];
+                            $validationErrorMsg[] =
+                                    $this->_getValidationErrorMsg($filter);
+                        }
+                        break;
+                    default:
+                        $validationPassed = FALSE;
+                        $validationErrorMsg[] =
+                                $this->_getValidationErrorMsg('inexistent_validation');
                 }
 
                 if (!$validationPassed) {
