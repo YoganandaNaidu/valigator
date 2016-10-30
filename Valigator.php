@@ -137,7 +137,7 @@ class Valigator
             . 'l,m,n,o,p,q,r,s,t,u,v,w,x,y,z,$,1,2,3,4,5,6,7,8,9,0,_';
 
     // map options passed to functions(parameters) to be called internally
-    protected $_synonyms = [
+    protected $_aliases = [
         'allow_fraction' => FILTER_FLAG_ALLOW_FRACTION,
         'allow_hex' => FILTER_FLAG_ALLOW_HEX,
         'allow_octal' => FILTER_FLAG_ALLOW_OCTAL,
@@ -187,15 +187,24 @@ class Valigator
         $this->_mbSupported = function_exists('mb_detect_encoding');
 
         foreach ($filters as $field => $fieldFilter) {
+
             $this->_filters[$field]['label'] = isset($fieldFilter['label'])
                     ? $fieldFilter['label']
                     : $this->_convertVariableNameToUpperCaseWords($field);
-            if (isset($fieldFilter['sanitizations'])) {
-                $this->setSanitizations(array($field => $fieldFilter['sanitizations']));
-            }
-            if (isset($fieldFilter['validations'])) {
-                $this->setValidations(array($field => $fieldFilter['validations']));
-            }
+
+            $this->setSanitizations(
+                    isset($fieldFilter['sanitizations'])
+                    ? array($field => $fieldFilter['sanitizations'])
+                    : (isset($fieldFilter['sanitization'])
+                        ? array($field => $fieldFilter['sanitization'])
+                        : array()));
+
+            $this->setValidations(
+                    isset($fieldFilter['validations'])
+                    ? array($field => $fieldFilter['validations'])
+                    : (isset($fieldFilter['validation'])
+                        ? array($field => $fieldFilter['validation'])
+                        : array()));
         }
 
         return $this;
@@ -374,6 +383,19 @@ class Valigator
     }
 
     /**
+     * Gets synonym from local array.
+     *
+     * @param string $lookFor
+     *
+     * @return mixed String or number, based on True(boolean) or the array of error messages
+     */
+    private function _findAlias(string $lookFor)
+    {
+        return array_key_exists($lookForLowerCase = strtolower($lookFor), $this->_aliases)
+                ? $this->_aliases[$lookForLowerCase] : $lookFor;            
+    }
+
+    /**
      * Function to create and return previously created instance
      *
      * @return Valigator
@@ -397,7 +419,7 @@ class Valigator
     {
         if (array_key_exists($key, $this->_validationErrorMsgs)) {
             $errorMsg = $this->_validationErrorMsgs[$key];
-        } elseif (array_key_exists($key = $this->_getSynonym($key)
+        } elseif (array_key_exists($key = $this->_findAlias($key)
                 , $this->_validationErrorMsgs)) {
             $errorMsg = $this->_validationErrorMsgs[$key];
         } else {
@@ -445,19 +467,6 @@ class Valigator
         $errorMsg = str_replace('{value}', $value, $errorMsg);
 
         return $errorMsg;            
-    }
-
-    /**
-     * Gets synonym from local array.
-     *
-     * @param string $lookFor
-     *
-     * @return mixed String or number, based on True(boolean) or the array of error messages
-     */
-    private function _getSynonym(string $lookFor)
-    {
-        return array_key_exists($lookForLowerCase = strtolower($lookFor), $this->_synonyms)
-                ? $this->_synonyms[$lookForLowerCase] : $lookFor;            
     }
 
     /**
@@ -726,14 +735,14 @@ class Valigator
     /**
      * Adds sanitizations for input fields.
      *
-     * @param array $fieldSalitizations
+     * @param array $fieldSanitizations
      *
      * @return object
      */
-    public function setSanitizations(array $fieldSalitizations
+    public function setSanitizations(array $fieldSanitizations
             , bool $mergeBefore = FALSE)
     {
-        foreach($fieldSalitizations as $field => $fieldFiltersString) {
+        foreach($fieldSanitizations as $field => $fieldFiltersString) {
 
             if (!isset($this->_filters[$field]['sanitizations'])) {
                 $this->_filters[$field]['sanitizations'] = array();
@@ -762,6 +771,7 @@ class Valigator
     public function setValidations(array $fieldValidations)
     {
         foreach($fieldValidations as $field => $fieldFiltersString) {
+
             if (!isset($this->_filters[$field]['validations'])) {
                 $this->_filters[$field]['validations'] = array();
             }
@@ -825,12 +835,12 @@ class Valigator
 
             foreach ($fieldFilters['sanitizations'] as $fieldFilter) {
                 $filter = $fieldFilter['filter'];
-                $filterSynonym = $this->_getSynonym($filter);
+                $filterSynonym = $this->_findAlias($filter);
 
                 if (count($fieldFilter['args']) > 0) {
                     $args = $fieldFilter['args'];
                     foreach($args as $i => $arg) {
-                        $argsSynonyms[$i] = $this->_getSynonym($arg);
+                        $argsSynonyms[$i] = $this->_findAlias($arg);
                     }                    
                 } else {
                     $args = $argsSynonyms = NULL;
@@ -880,13 +890,13 @@ class Valigator
 
             foreach ($fieldFilters['validations'] as $fieldFilter) {
                 $filter = $fieldFilter['filter'];
-                $filterSynonym = $this->_getSynonym($filter);
+                $filterSynonym = $this->_findAlias($filter);
 
 
                 $args = $fieldFilter['args'];
                 if (count($fieldFilter['args']) > 0) {
                     foreach($args as $i => $arg) {
-                        $argsSynonyms[$i] = $this->_getSynonym($arg);
+                        $argsSynonyms[$i] = $this->_findAlias($arg);
                     }                    
                 } else {
                     $argsSynonyms = $args;
