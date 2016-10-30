@@ -124,12 +124,6 @@ class Valigator
     //
     protected $_validationErrorLog = array();
 
-    // Validation rules for execution
-    protected $validation_rules = array();
-
-    // Filter rules for execution
-    protected $filter_rules = array();
-
     // All HTML Tags that will be removed by sanitize_basichtmltags method
     protected static $_basicHTMLTags = '<a><b><blockquote><br><code><dd><dl>'
             . '<em><hr><h1><h2><h3><h4><h5><h6><i><img><label><li><p><span>'
@@ -238,7 +232,7 @@ class Valigator
      */
     private function _checkFields(array $data)
     {
-        $ruleset = $this->validation_rules();
+        $ruleset = $this->_filters['validations'];
         $mismatch = array_diff_key($data, $ruleset);
         $fields = array_keys($mismatch);
 
