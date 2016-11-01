@@ -129,7 +129,7 @@ require 'Valigator.php';                        // point to the right path, or a
 
 $myValigator = new \Fishfin\Valigator($myFilters);
 
-$validationResults = $myValigator->run($inputData);
+$validationResults = $myValigator->run($inputData);  // run() does sanitizations, then validations
 
 if ($validationResults === FALSE)) {
   // at least one validation failed
