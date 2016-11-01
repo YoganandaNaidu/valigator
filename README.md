@@ -21,7 +21,7 @@ Maybe. Maybe not. Yeah, Valigator draws inspiration from some of the good, nay, 
 ## Anatomy of Valigator
 ### Terminology
  * **field**  
-The name of the data to which filters are mapped. Typically variable names in a POST request.  A field may be mapped to no, one or multiple sanitization filters. A field may be mapped to no, one or multiple validation filters. Case-sensitive. For example, `username` is not the same as `userName`.
+The name of the data to which filters are mapped. Typically variable names in a POST request.  A field may be mapped to no, one or multiple sanitization filters. A field may be mapped to no, one or multiple validation filters. Case-sensitive. For example, `loginId` is not the same as `loginid`.
  * **value**  
 The value of the field on which the filters run. Typically mapped to variable names in a POST request. Case-sensitive unless made case-insensitive by filters running on it. For example, `email` filter doesn't care if the value passed has upper or lower case characters.
  * **filter**  
@@ -33,7 +33,7 @@ Sanitization filters are known as simply 'sanitizations'. Sanitizations never er
  * **validation**  
 And vanitization filters are known as simply 'validations'. A validation can either pass or fail. If it fails, it emits one error message.
  * **label**  
-Human-readable label of the field which the programmer can set. If not set, labels default to upper-cased words of the field variable-name. For example, field `userName` by default will be labelled `User Name` (rad, isn't it!), but can be renamed by programmer to `Login ID`. Variable-names of following patterns are automatically detected: *snake_case*, *camelCase*, *PascalCase* and *train-case*. Some default label examples:
+Human-readable label of the field which the programmer can set. If not set, labels default to upper-cased words of the field variable-name. For example, field `loginId` by default will be labelled `Login Id` (rad, isn't it!), but can be renamed by programmer to `Registered Login ID`. Variable-names of following patterns are automatically detected: *snake_case*, *camelCase*, *PascalCase* and *train-case*. Some default label examples:
   * `token` becomes `Token`
   * `project_title` becomes `Project Title`
   * `book-1` becomes `Book 1`
@@ -51,8 +51,8 @@ Error messages emitted by validations (one per validation). Can be overwritten w
 ### The Gears and Wheels
 Its easier to proceed from here with an example. Lets say we want to validate the following fields:
 
- * userName: required and must be an email ID
- * fullName: required and must be a name
+ * loginId: required and must be an email ID
+ * name: required and must be a name
  * creditCardNumber: not mandatory, but if provided must be a valid credit card number
  * addressPINCode: not mandatory, but if provided must be a 6-digit number
 
@@ -64,23 +64,23 @@ Now lets say we are receiving the following data in an array (if you are not rec
 // iteration 1
 $inputData = [
   'salutation' => 'Mr.'                         // we aren't interested in validating this
-  'userName' => '',                             // invalid data as it is empty
-                                                // notice that fullName is missing
+  'loginId' => '',                              // invalid data as it is empty
+                                                // notice that 'name' is missing
   'creditCardNumber' => '0001-0001-0001-0001',  // not a valid credit card number
-                                                // notice that addressPINCode is missing
+                                                // notice that 'addressPINCode' is missing
 ]
 ```
 Lets now create filters based on the data validation requirements we have, and add a few other useful things. Please read Important Notes in the code comments.
 ``` php
 <?php
 $myFilters = [
-  'userName' => [
-    'label' => 'Retail User ID',                // overrides default 'User Name'
+  'loginId' => [
+    'label' => 'Retail User ID',                // overrides default 'Login Id'
     'sanitizations' => 'trim',                  // 'trim' is a popular filter, works exactly
                                                 // like the PHP in-built trim()
   ],
-  'fullName' => [
-    'label' => 'Name',                          // overrides default 'Full Name'
+  'name' => [
+    'label' => 'Full Name',                     // overrides default 'Name'
     'sanitization' => 'trim',                   // singular 'sanitization' works too
   ],
   'creditCardNumber' => [
@@ -94,15 +94,15 @@ $myFilters = [
 ];
 
 // Important Notes:
-//  1. 'userName', 'firstName', 'lastName', 'creditCardNumber' and 'addressPINCode' are our
-//     **fields** of interest
-//  2. Field names are case-sensitive: 'userName' is not the same as 'username'
+//  1. 'loginId', 'name', 'creditCardNumber' and 'addressPINCode' are our **fields** of
+//     interest
+//  2. Field names are case-sensitive: 'loginId' is not the same as 'loginid'
 //  3. Important understanding about filters:
 //     a. Sanitization filters will modify input, and will never emit errors
 //     b. Validation filters will never modify input, but can emit errors
 //  4. The order of running filters is as follows:
-//     a. All sanitizations first (if they exist) in order: 'userName' to 'addressPINCode'
-//     b. Then all validations (if they exist) in order:  'userName' to 'addressPINCode'
+//     a. All sanitizations first (if they exist) in order: 'loginId' to 'addressPINCode'
+//     b. Then all validations (if they exist) in order:  'loginId' to 'addressPINCode'
 //  5. If there are validation errors, they will be reported in exactly the same order, so
 //     if you want some errors to be reported higher than the others, place the field higher
 //  6. You can use the following keywords interchangeably, whatever makes you comfortable:
