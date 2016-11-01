@@ -122,4 +122,18 @@ $myFilters = [
 //     value must be present.
 ```
 
+Now lets run the validator:
+``` php
+<?php
+require 'Valigator.php';
+
+$myValigator = new \Fishfin\Valigator($myFilters);
+
+if ($myValigator->run($inputData)) {
+  // at least one validation failed
+} else {
+  // all validations passed
+}
+```
+
 #### Work-in-progress on documentation, but the class is ready for Production use.
