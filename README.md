@@ -61,6 +61,7 @@ Yes, you noticed it, camelCase is just my preference.
 
 Now lets say we are receiving the following data in an array (if you are not receiving the data in an array, you will need to create an array):
 ``` php
+<?php
 // iteration 1
 $inputData = [
   'salutation' => 'Mr.'                         // we aren't interested in validating this
@@ -73,6 +74,7 @@ $inputData = [
 ```
 Lets now create filters based on the data validation requirements we have, and add a few other useful things. Please read Important Notes in the code comments.
 ``` php
+<?php
 $myFilters = [
   'userName' => [
     'label' => 'Retail User Name',              // will overwrite default 'User Name'
@@ -81,12 +83,11 @@ $myFilters = [
   ],
   'firstName' => [
                                                 // label will default to 'First Name'
-
     'sanitizations' => 'trim',
   ],
   'lastName' => [
     'label' => 'Surname',                       // will overwrite default 'Last Name'
-    'sanitizations' => 'trim',
+    'sanitization' => 'trim',
   ],
   'creditCardNumber' => [
                                                 // label will default to 'Credit Card Number'
