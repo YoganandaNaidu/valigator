@@ -77,24 +77,24 @@ Lets now create filters based on the data validation requirements we have, and a
 <?php
 $myFilters = [
   'userName' => [
-    'label' => 'Retail User Name',              // will overwrite default 'User Name'
+    'label' => 'Retail User Name',              // overrides default 'User Name'
     'sanitizations' => 'trim',                  // 'trim' is a popular filter, works exactly
                                                 // like the PHP in-built trim()
   ],
   'firstName' => [
-                                                // label will default to 'First Name'
+                                                // label defaults to 'First Name'
     'sanitizations' => 'trim',
   ],
   'lastName' => [
-    'label' => 'Surname',                       // will overwrite default 'Last Name'
+    'label' => 'Surname',                       // overrides default 'Last Name'
     'sanitization' => 'trim',
   ],
   'creditCardNumber' => [
-                                                // label will default to 'Credit Card Number'
+                                                // label defaults to 'Credit Card Number'
     'sanitizations' => 'trim|creditcard',       // here are multiple sanitization filters
   ],
   'addressPINCode' => [
-    'label' => 'Indian PIN Code',               // will overwrite default 'Address PIN Code'
+    'label' => 'Indian PIN Code',               // overrides default 'Address PIN Code'
                                                 // no sanitization filters here
   ],
 ];
