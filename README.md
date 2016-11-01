@@ -131,6 +131,7 @@ $myValigator = new \Fishfin\Valigator($myFilters);
 
 if ($myValigator->run($inputData)) {
   // at least one validation failed
+  $myValidationErrorsArray = $myValigator->getValidationErrors();
 } else {
   // all validations passed
 }
