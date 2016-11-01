@@ -18,7 +18,8 @@ PS: Slim Framework 3 is groovy!
 ### Yet Another Vali[dg]ator
 Maybe. Maybe not. Yeah, Valigator draws inspiration from some of the good, nay, great ones. And adds its own good bits too. Just to get you interested: Filter Aliasing, Multiple Arguments, Programmer-customizable Validation Error Messages and more.
 
-## Terminology
+## Anatomy of Valigator
+### Terminology
  * **field**  
 The name of the data to which filters are mapped. Typically variable names in a POST request.  A field may be mapped to no, one or multiple sanitization filters. A field may be mapped to no, one or multiple validation filters. Case-sensitive. For example, `username` is not the same as `userName`.
  * **value**  
@@ -32,13 +33,19 @@ Sanitization filters are known as simply 'sanitizations'. Sanitizations never er
  * **validation**  
 And vanitization filters are known as simply 'validations'. A validation can either pass or fail. If it fails, it emits one error message.
  * **label**  
-Human-readable rename of the field which the programmer can set. If not set, labels default to upper-cased words of the field variable-name. For example, field `userName` by default will be labelled `User Name` (rad, isn't it!), but can be renamed by programmer to `Log-in ID`. Variable-names of following patterns are automatically detected: *snake_case*, *camelCase*, *PascalCase* and *train-case*.
+Human-readable label of the field which the programmer can set. If not set, labels default to upper-cased words of the field variable-name. For example, field `userName` by default will be labelled `User Name` (rad, isn't it!), but can be renamed by programmer to `Login ID`. Variable-names of following patterns are automatically detected: *snake_case*, *camelCase*, *PascalCase* and *train-case*. Some default label examples:
+  * `token` becomes `Token`
+  * `project_title` becomes `Project Title`
+  * `book-1` becomes `Book 1`
+  * `debitCardNumber` becomes `Debit Card Number`
+  * `FAQAnswer6` becomes `FAQ Answer 6`
+  * `SuspenseAccount#` becomes `Suspense Account #`
  * **errormsg**  
 Error messages emitted by validations (one per validation). Can be overwritten with custom error messages by the programmer per field per validation. Error messages may contain some special tags which will be replaced dynamically:  
 `{field}` is replaced with label of the field  
 `{value}` is replaced with value of the field  
 `{filter}` is replaced with name of the filter  
 `{args}` is replaced with delimited string of concatenated arguments to the filter  
-`{arg1}`, ..., `{arg2}` are replaced with individual arguments to the filter if they exist (note that there is no {arg0})
+`{arg1}`, ..., `{argn}` are replaced with individual arguments to the filter if they exist (note that there is no {arg0})
 
-#### Work In Progress on documentation...
+#### Work-in-progress on documentation, but the class is ready for Production use.
