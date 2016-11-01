@@ -129,12 +129,15 @@ require 'Valigator.php';
 
 $myValigator = new \Fishfin\Valigator($myFilters);
 
-if ($myValigator->run($inputData)) {
+$validationResults = $myValigator->run($inputData);
+
+if (validationResults === FALSE)) {
   // at least one validation failed
   $myValidationErrorsArray = $myValigator->getValidationErrors();
 } else {
   // all validations passed
+  $sanitizedInputData = validationResults;
 }
 ```
 
-#### Work-in-progress on documentation, but the class is ready for Production use.
+#### In-depth documentation is in progress, but so much so far should get you started easily! The PHP class is Production-ready.
