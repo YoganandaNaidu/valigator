@@ -78,18 +78,23 @@ $myFilters = [
     'label' => 'Retail User ID',                // overrides default 'Login Id'
     'sanitizations' => 'trim',                  // 'trim' is a popular filter, works exactly
                                                 // like the PHP in-built trim()
+    'validations' => 'required|email',          // multiple validation filters
   ],
   'name' => [
     'label' => 'Full Name',                     // overrides default 'Name'
     'sanitization' => 'trim',                   // singular 'sanitization' works too
+    'validation' => 'required|personname',      // singular 'validation' works too
   ],
   'creditCardNumber' => [
                                                 // label defaults to 'Credit Card Number'
-    'sanitizations' => 'trim|creditcard',       // here are multiple sanitization filters
+    'sanitizations' => 'trim|creditcard',       // multiple sanitization filters
+    'validations' => 'creditcard',              // if present, must be credit card number
   ],
   'addressPINCode' => [
     'label' => 'Indian PIN Code',               // overrides default 'Address PIN Code'
                                                 // no sanitization filters here
+    'validations' => 'numeric|exactlen:6',      // if present, must be numeric of exactly 6
+                                                // characters length
   ],
 ];
 
@@ -112,6 +117,9 @@ $myFilters = [
 //     delimiter is '|'. Filters are run in the same order from left to right. Output of first
 //     sanitization filter is passed to the second one, output of second to the third and so on.
 //     Output of sanitization is sent to validation filters.
+//  8. For most validation filters except 'required', if input is absent or empty, validation
+//     will pass. Simply add 'required' filter to the beginning of validation filters if the
+//     value must be present.
 ```
 
 #### Work-in-progress on documentation, but the class is ready for Production use.
