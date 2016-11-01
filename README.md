@@ -52,8 +52,7 @@ Error messages emitted by validations (one per validation). Can be overwritten w
 Its easier to proceed from here with an example. Lets say we want to validate the following fields:
 
  * userName: required and must be an email ID
- * firstName: required and must be a name
- * lastName: required and must be a name
+ * fullName: required and must be a name
  * creditCardNumber: not mandatory, but if provided must be a valid credit card number
  * addressPINCode: not mandatory, but if provided must be a 6-digit number
 
@@ -66,8 +65,7 @@ Now lets say we are receiving the following data in an array (if you are not rec
 $inputData = [
   'salutation' => 'Mr.'                         // we aren't interested in validating this
   'userName' => '',                             // invalid data as it is empty
-  'firstName' => '123',                         // invalid data as it isn't a name
-                                                // notice that lastName is missing
+                                                // notice that fullName is missing
   'creditCardNumber' => '0001-0001-0001-0001',  // not a valid credit card number
                                                 // notice that addressPINCode is missing
 ]
@@ -77,17 +75,13 @@ Lets now create filters based on the data validation requirements we have, and a
 <?php
 $myFilters = [
   'userName' => [
-    'label' => 'Retail User Name',              // overrides default 'User Name'
+    'label' => 'Retail User ID',                // overrides default 'User Name'
     'sanitizations' => 'trim',                  // 'trim' is a popular filter, works exactly
                                                 // like the PHP in-built trim()
   ],
-  'firstName' => [
-                                                // label defaults to 'First Name'
+  'fullName' => [
+    'label' => 'Name',                          // overrides default 'Full Name'
     'sanitizations' => 'trim',
-  ],
-  'lastName' => [
-    'label' => 'Surname',                       // overrides default 'Last Name'
-    'sanitization' => 'trim',
   ],
   'creditCardNumber' => [
                                                 // label defaults to 'Credit Card Number'
