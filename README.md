@@ -125,7 +125,7 @@ $myFilters = [
 Now lets run the validator:
 ``` php
 <?php
-require 'Valigator.php';
+require 'Valigator.php';                        // point to the right path, or autoload
 
 $myValigator = new \Fishfin\Valigator($myFilters);
 
