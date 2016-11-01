@@ -71,23 +71,30 @@ $inputData = [
                                                 // notice that addressPINCode is missing
 ]
 ```
-Lets now create filters based on the data validation requirements we have, and add a few other useful things:
+Lets now create filters based on the data validation requirements we have, and add a few other useful things. Please read Important Notes in the code comments.
 ``` php
 $myFilters = [
   'userName' => [
     'label' => 'Retail User Name',              // will overwrite default 'User Name'
+    'sanitizations' => 'trim',                  // 'trim' is a popular filter, works exactly
+                                                // like the PHP in-built trim()
   ],
   'firstName' => [
                                                 // label will default to 'First Name'
+
+    'sanitizations' => 'trim',
   ],
   'lastName' => [
     'label' => 'Surname',                       // will overwrite default 'Last Name'
+    'sanitizations' => 'trim',
   ],
   'creditCardNumber' => [
                                                 // label will default to 'Credit Card Number'
+    'sanitizations' => 'trim|creditcard',       // here are multiple sanitization filters
   ],
   'addressPINCode' => [
     'label' => 'Indian PIN Code',               // will overwrite default 'Address PIN Code'
+                                                // no sanitization filters here
   ],
 ];
 
@@ -95,11 +102,21 @@ $myFilters = [
 //  1. 'userName', 'firstName', 'lastName', 'creditCardNumber' and 'addressPINCode' are our
 //     **fields** of interest
 //  2. Field names are case-sensitive: 'userName' is not the same as 'username'
-//  3. The order of running filters is as follows:
+//  3. Important understanding about filters:
+//     a. Sanitization filters will modify input, and will never emit errors
+//     b. Validation filters will never modify input, but can emit errors
+//  4. The order of running filters is as follows:
 //     a. All sanitizations first (if they exist) in order: 'userName' to 'addressPINCode'
 //     b. Then all validations (if they exist) in order:  'userName' to 'addressPINCode'
-//  4. If there are validation errors, they will be reported in exactly the same order, so
+//  5. If there are validation errors, they will be reported in exactly the same order, so
 //     if you want some errors to be reported higher than the others, place the field higher
+//  6. You can use the following keywords interchangeably, whatever makes you comfortable:
+//     a. 'sanitization' <=> 'sanitizations'
+//     b. 'validation' <=> 'validations'
+//  7. Multiple filters can be set for each field, for sanitizations or validations, the
+//     delimiter is '|'. Filters are run in the same order from left to right. Output of first
+//     sanitization filter is passed to the second one, output of second to the third and so on.
+//     Output of sanitization is sent to validation filters.
 ```
 
 #### Work-in-progress on documentation, but the class is ready for Production use.
