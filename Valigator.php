@@ -7,7 +7,7 @@ namespace Fishfin;
  *
  * @author      fishfin
  * @link        http://aalapshah.in
- * @version     0.0.1-alpha
+ * @version     1.0.0
  * @license     MIT
  * 
  * Valigator is a standalone PHP sanitization and validation class that does not
@@ -21,21 +21,58 @@ namespace Fishfin;
  */
 class Valigator
 {
+    const PLAIN_ERRORMSGS = 0;
+    const FIELDS_AND_PLAIN_ERRORMSGS = 1;
+    const HTML_ERRORMSGS = 2;
+    const FIELDS_AND_HTML_ERRORMSGS = 3;
+
+    // map options passed to functions(parameters) to be called internally
+    protected $_aliases = [
+        'allow_fraction' => FILTER_FLAG_ALLOW_FRACTION,
+        'allow_hex' => FILTER_FLAG_ALLOW_HEX,
+        'allow_octal' => FILTER_FLAG_ALLOW_OCTAL,
+        'allow_scientific' => FILTER_FLAG_ALLOW_SCIENTIFIC,
+        'allow_thousand' => FILTER_FLAG_ALLOW_THOUSAND,
+        'alphabet' => 'alphabetic',
+        'bool' => 'boolean',
+        'encode_amp' => FILTER_FLAG_ENCODE_AMP,
+        'encode_high' => FILTER_FLAG_ENCODE_HIGH,
+        'encode_low' => FILTER_FLAG_ENCODE_LOW,
+        'fileext' => 'fileextension',
+        'host_required' => FILTER_FLAG_HOST_REQUIRED,
+        'int' => 'integer',
+        'ipv4' => FILTER_FLAG_IPV4,
+        'ipv6' => FILTER_FLAG_IPV6,
+        'path_required' => FILTER_FLAG_PATH_REQUIRED,
+        'query_required' => FILTER_FLAG_QUERY_REQUIRED,
+        'no_encode_quotes' => FILTER_FLAG_NO_ENCODE_QUOTES,
+        'no_priv_range' => FILTER_FLAG_NO_PRIV_RANGE,
+        'no_res_range' => FILTER_FLAG_NO_RES_RANGE,
+        'null_on_failure' => FILTER_NULL_ON_FAILURE,
+        'num' => 'numeric',
+        'number' => 'numeric',
+        'scheme_required' => FILTER_FLAG_SCHEME_REQUIRED,
+        'str' => 'string',
+        'strip_high' => FILTER_FLAG_STRIP_HIGH,
+        'strip_low' => FILTER_FLAG_STRIP_LOW,
+        'strip_backtick' => FILTER_FLAG_STRIP_BACKTICK,        
+    ];
+
     // Filter arguments delimiter default, can be modified using
     // setArgsDelimiter()
     protected $_argsDelimiter = ', ';
 
     // Customer sanitization methods
-    protected static $_customSanitizations = array();
+    protected $_customSanitizations = array();
 
     // Custom validation methods
-    protected static $_customValidations = array();
+    protected $_customValidations = array();
     
     // Multibyte supported
     protected $_mbSupported = FALSE;
 
     // Default validation error messages
-    protected $_validationErrorMsgs = [
+    protected $_factoryValidationErrorMsgs = [
         'default' => '{field} is invalid',
         'default_long' => 'Field {field} with value \'{value}\' failed validation {filter}',
         'inexistent_validation' => 'Validation filter {filter} does not exist for {field}, please contact the application owner',
@@ -77,9 +114,18 @@ class Valigator
         'urlexists' => '{field} URL does not exist',
     ];
 
-    //Singleton instance of Valigator
-    protected static $_instance = NULL;
-    
+    // Error message HTML span attributes
+    protected $_emptyErrormsgHTMLSpanAttr = [
+        'errormsg' => '',
+        'field' => '',
+        'value' => '',
+        'filter' => '',
+        'arg' => '',
+    ];
+
+    // Error message HTML span attributes
+    protected $_errormsgHTMLSpanAttr = array();
+
     // Contains fields mapping:
     // 'field1' => [
     //   -- label set to upper-case words by the class by default - , can be
@@ -125,12 +171,12 @@ class Valigator
     protected $_validationErrorLog = array();
 
     // All HTML Tags that will be removed by sanitize_basichtmltags method
-    protected static $_basicHTMLTags = '<a><b><blockquote><br><code><dd><dl>'
+    protected $_basicHTMLTags = '<a><b><blockquote><br><code><dd><dl>'
             . '<em><hr><h1><h2><h3><h4><h5><h6><i><img><label><li><p><span>'
             . '<strong><sub><sup><ul>';
 
     // All noise words that will be removed by sanitize_noisewords method
-    protected static $_enNoiseWords = 'about,after,all,also,an,and,another,any,'
+    protected $_enNoiseWords = 'about,after,all,also,an,and,another,any,'
             . 'are,as,at,be,because,been,before,being,between,both,but,by,came,'
             . 'can,come,could,did,do,each,for,from,get, got,has,had,he,have,'
             . 'her,here,him,himself,his,how,if,in,into,is,it,its,it\'s,like,'
@@ -140,45 +186,7 @@ class Valigator
             . 'those,through,to,too,under,up,very,was,way,we,well,were,what,'
             . 'where,which,while,who,with,would,you,your,a,b,c,d,e,f,g,h,i,j,k,'
             . 'l,m,n,o,p,q,r,s,t,u,v,w,x,y,z,$,1,2,3,4,5,6,7,8,9,0,_';
-
-    // map options passed to functions(parameters) to be called internally
-    protected $_aliases = [
-        'allow_fraction' => FILTER_FLAG_ALLOW_FRACTION,
-        'allow_hex' => FILTER_FLAG_ALLOW_HEX,
-        'allow_octal' => FILTER_FLAG_ALLOW_OCTAL,
-        'allow_scientific' => FILTER_FLAG_ALLOW_SCIENTIFIC,
-        'allow_thousand' => FILTER_FLAG_ALLOW_THOUSAND,
-        'alphabet' => 'alphabetic',
-        'bool' => 'boolean',
-        'encode_amp' => FILTER_FLAG_ENCODE_AMP,
-        'encode_high' => FILTER_FLAG_ENCODE_HIGH,
-        'encode_low' => FILTER_FLAG_ENCODE_LOW,
-        'fileext' => 'fileextension',
-        'host_required' => FILTER_FLAG_HOST_REQUIRED,
-        'int' => 'integer',
-        'ipv4' => FILTER_FLAG_IPV4,
-        'ipv6' => FILTER_FLAG_IPV6,
-        'path_required' => FILTER_FLAG_PATH_REQUIRED,
-        'query_required' => FILTER_FLAG_QUERY_REQUIRED,
-        'no_encode_quotes' => FILTER_FLAG_NO_ENCODE_QUOTES,
-        'no_priv_range' => FILTER_FLAG_NO_PRIV_RANGE,
-        'no_res_range' => FILTER_FLAG_NO_RES_RANGE,
-        'null_on_failure' => FILTER_NULL_ON_FAILURE,
-        'num' => 'numeric',
-        'number' => 'numeric',
-        'scheme_required' => FILTER_FLAG_SCHEME_REQUIRED,
-        'str' => 'string',
-        'strip_high' => FILTER_FLAG_STRIP_HIGH,
-        'strip_low' => FILTER_FLAG_STRIP_LOW,
-        'strip_backtick' => FILTER_FLAG_STRIP_BACKTICK,        
-    ];
     
-    public function dummy($parm) {
-        //return $this->_convertVariableNameToUpperCaseWords($parm);
-        return $this->_convertFieldFiltersStringToArray($parm);
-        //return $this->_convertFieldFiltersArrayToString($this->_convertFieldFiltersStringToArray($parm));
-    }
-
     /**
      * Magic method to generate the validation error messages.
      * 
@@ -190,6 +198,8 @@ class Valigator
     public function __construct(array $filters = array())
     {
         $this->_mbSupported = function_exists('mb_detect_encoding');
+        
+        $this->_errormsgHTMLSpanAttr = $this->_emptyErrormsgHTMLSpanAttr;
 
         foreach ($filters as $field => $fieldFilter) {
 
@@ -420,19 +430,6 @@ class Valigator
     }
 
     /**
-     * Function to create and return previously created instance
-     *
-     * @return Valigator
-     */
-    private static function _getInstanceOfSelf()
-    {
-        if (self::$instance === NULL) {
-            self::$instance = new self();
-        }
-        return self::$instance;
-    }
-
-    /**
      * Retrieves standard validation error messages from internal array
      *
      * @param string  $key
@@ -441,13 +438,13 @@ class Valigator
      */
     private function _getValidationErrorMsg(string $key)
     {
-        if (array_key_exists($key, $this->_validationErrorMsgs)) {
-            $errorMsg = $this->_validationErrorMsgs[$key];
+        if (array_key_exists($key, $this->_factoryValidationErrorMsgs)) {
+            $errorMsg = $this->_factoryValidationErrorMsgs[$key];
         } elseif (array_key_exists($key = $this->_findAlias($key)
-                , $this->_validationErrorMsgs)) {
-            $errorMsg = $this->_validationErrorMsgs[$key];
+                , $this->_factoryValidationErrorMsgs)) {
+            $errorMsg = $this->_factoryValidationErrorMsgs[$key];
         } else {
-            $errorMsg = $this->_validationErrorMsgs['default_long'];            
+            $errorMsg = $this->_factoryValidationErrorMsgs['default_long'];            
         }
         
         return $errorMsg;
@@ -525,19 +522,18 @@ class Valigator
      *
      * @throws Exception
      */
-    public static function addCustomSanitization(string $filter
-            , callable $callback)
+    public function addCustomSanitization(string $filter, callable $callback)
     {
         $filter = strtolower($filter);
         $method = "sanitize_{$filter}";
 
-        if (method_exists(__CLASS__, $method) || isset(self::$_customSanitizations[$filter])) {
+        if (method_exists(__CLASS__, $method) || isset($this->_customSanitizations[$filter])) {
             throw new \Exception("Sanitization filter {$filter} already exists");
         }
 
-        self::$_customSanitizations[$filter] = $callback;
+        $this->_customSanitizations[$filter] = $callback;
 
-        return;
+        return $this;
     }
 
     /**
@@ -550,24 +546,24 @@ class Valigator
      *
      * @throws Exception
      */
-    public static function addCustomValidation(string $filter
-            , callable $callback, string $defaultErrorMsg = NULL)
+    public function addCustomValidation(string $filter, callable $callback
+            , string $defaultErrorMsg = NULL)
     {
         $filter = strtolower($filter);
         $method = "validate_{$filter}";
 
-        if (method_exists(__CLASS__, $method) || isset(self::$_customValidations[$filter])) {
+        if (method_exists(__CLASS__, $method) || isset($this->_customValidations[$filter])) {
             throw new \Exception("Validation filter {$filter} already exists.");
         }
 
-        self::$_customValidations[$filter]['callback'] = $callback;
+        $this->_customValidations[$filter]['callback'] = $callback;
 
         if ($defaultErrorMsg === NULL) {
-            $defaultErrorMsg = $this->_validationErrorMsgs['default_long'];
+            $defaultErrorMsg = $this->_factoryValidationErrorMsgs['default_long'];
         }
-        self::$_customValidations[$filter]['errormsg'] = $defaultErrorMsg;
+        $this->_customValidations[$filter]['errormsg'] = $defaultErrorMsg;
 
-        return;
+        return $this;
     }
 
     /**
@@ -681,66 +677,43 @@ class Valigator
      *
      * @return array
      */
-    public function getValidationErrors(string $errorDelimiter = NULL)
+    public function getValidationErrors(
+            int $returnFormat = self::PLAIN_ERRORMSGS
+            , string $errorDelimiter = NULL)
     {
-        $validationErrors = array();
+        $formatAsHTML = ($returnFormat === self::HTML_ERRORMSGS
+                || $returnFormat === self::FIELDS_AND_HTML_ERRORMSGS);
+        $includeFields =  ($returnFormat === self::FIELDS_AND_PLAIN_ERRORMSGS
+                || $returnFormat === self::FIELDS_AND_HTML_ERRORMSGS);
+
+        $formattedErrormsgs = array();
+
+        $spans = $formatAsHTML
+                ? $this->_errormsgHTMLSpanAttr
+                : $this->_emptyErrormsgHTMLSpanAttr;
 
         foreach ($this->_validationErrorLog as $validationErrorAt) {
-            $validationErrors[] = [
-                $validationErrorAt['field'] => $this->_readableErrorMsg(
+            $formattedErrormsg =  $this->_readableErrorMsg(
                         $validationErrorAt['errormsg']
                         , $validationErrorAt['field']
                         , $validationErrorAt['value']
                         , $validationErrorAt['filter']
                         , $validationErrorAt['args']
-                        , 'style="color:magenta"'
-                        , 'style="color:red"'
-                        , 'style="color:blue"'
-                        , 'style="color:pink"'
-                        , 'style="color:yellow"')
-            ];
+                        , $spans['errormsg']
+                        , $spans['field']
+                        , $spans['value']
+                        , $spans['filter']
+                        , $spans['arg']);
+
+            $formattedErrormsgs[] = $includeFields
+                    ? [$validationErrorAt['field'] => $formattedErrormsg]
+                    : $formattedErrormsg;
         }
         
         if ($errorDelimiter !== NULL) {
-            $validationErrors = implode($errorDelimiter, $validationErrors);
+            $formattedErrormsgs = implode($errorDelimiter, $formattedErrormsgs);
         }
-        return $validationErrors;
-    }
-
-    /**
-     * Shorthand method for running inline data sanitization.
-     *
-     * @param array $data
-     * @param array $filters
-     *
-     * @return mixed
-     */
-    public static function sanitizeInline(array $data, array $filters)
-    {
-        $valigator = self::getInstanceOfSelf();
-
-        return $valigator->sanitize($data, $filters);
-    }
-
-    /**
-     * Shorthand method for running inline data validation.
-     *
-     * @param array $data       The data to be validated
-     * @param array $validators The Valigator validators
-     *
-     * @return mixed True(boolean) or the array of error messages
-     */
-    public static function validateInline(array $data, array $validators)
-    {
-        $valigator = self::getInstanceOfSelf();
-
-        $valigator->validations($validators);
-
-        if ($valigator->run($data) === false) {
-            return $valigator->getValidationErrors();
-        } else {
-            return true;
-        }
+        return $formattedErrormsgs;
     }
 
     /**
@@ -781,6 +754,31 @@ class Valigator
       } else {
         return $default;
       }
+    }
+
+    /**
+     * Sets span attributes to be used in HTML validation error messages.
+     *
+     * @param string   $errormsgSpan
+     * @param string   $fieldSpan
+     * @param string   $valueSpan
+     * @param string   $filterSpan
+     * @param string   $argSpan
+     *
+     * @return object
+     */
+    public function setHTMLSpansForErrorMsgs(string $errormsgSpan = NULL
+            , string $fieldSpan = NULL, string $valueSpan = NULL
+            , string $filterSpan = NULL, string $argSpan = NULL)
+    {
+        foreach (['errormsg', 'field', 'value', 'filter', 'arg'] as $element) {
+            $elementSpanVar = "{$element}Span";
+            $this->_errormsgHTMLSpanAttr[$element] =
+                    ($$elementSpanVar === NULL || !is_string($$elementSpanVar))
+                    ? '' : $$elementSpanVar;
+        }
+        
+        return $this;  // returning object to facilitate chaining
     }
 
     /**
@@ -884,15 +882,11 @@ class Valigator
 
         $validated = $this->runValidations($sanitizedInput);
 
-        if ($checkFields === TRUE) {
-            $this->_checkFields($sanitizedInput);
-        }
+        //if ($checkFields === TRUE) {
+        //    $this->_checkFields($sanitizedInput);
+        //}
 
-        if ($validated !== TRUE) {
-            return FALSE;
-        }
-
-        return $sanitizedInput;
+        return ($validated === FALSE) ? FALSE : $sanitizedInput;
     }
 
     /**
@@ -908,6 +902,8 @@ class Valigator
      */
     public function runSanitizations(array $input)
     {
+        $this->_validationErrorLog = array();  // initialize error log
+
         foreach ($this->_filters as $field => $fieldFilters) {
             if (!array_key_exists($field, $input)
                     || !isset($fieldFilters['sanitizations'])) {
@@ -933,8 +929,8 @@ class Valigator
                         $value = isset($input[$field]) ? $input[$field] : NULL;
                         $input[$field] = $this->$method($value, $argsSynonyms);                    
                         break;
-                    case (isset(self::$_customSanitizations[$filter])):
-                        $input[$field] = call_user_func(self::$_customSanitizations[$filter]
+                    case (isset($this->_customSanitizations[$filter])):
+                        $input[$field] = call_user_func($this->_customSanitizations[$filter]
                                 , $input[$field], $argsSynonyms);
                         break;
                     case (is_callable(array($this, "sanitize_{$filter}"))):
@@ -969,7 +965,7 @@ class Valigator
      */
     public function runValidations(array $input)
     {
-        $this->_validationErrorLog = array();
+        $this->_validationErrorLog = array();  // initialize error log
 
         foreach ($this->_filters as $field => $fieldFilters) {
             if (!isset($fieldFilters['validations'])) {
@@ -993,14 +989,14 @@ class Valigator
                 $validationErrorMsg = array();
 
                 switch (TRUE) {
-                    case (isset(self::$_customValidations[$filter]['callback'])):
+                    case (isset($this->_customValidations[$filter]['callback'])):
                         $validationPassed = call_user_func(
-                                self::$_customValidations[$filter]['callback']
+                                $this->_customValidations[$filter]['callback']
                                 , $field, $input, $argsSynonyms);
                         if (!$validationPassed) {
                             $validationErrorMsg[] = $fieldFilter['errormsg'];
-                            $validationErrorMsg[] = self::$_customValidations[$filter]['errormsg'];
-                            $validationErrorMsg[] = $this->_validationErrorMsgs['default_long'];
+                            $validationErrorMsg[] = $this->_customValidations[$filter]['errormsg'];
+                            $validationErrorMsg[] = $this->_factoryValidationErrorMsgs['default_long'];
                         }
                         break;
                     case (is_callable(array($this, $method = "validate_{$filter}"))
@@ -1036,79 +1032,8 @@ class Valigator
             }
         }
 
-        return (count($this->_validationErrorLog) > 0)
-                    ? $this->_validationErrorLog
-                    : TRUE;
+        return (count($this->_validationErrorLog) > 0) ? FALSE : TRUE;
     }
-
-    /**
-     * Overloadable method to invoke validation.
-     *
-     * @param array $input
-     * @param $rules
-     * @param $field
-     *
-     * @return bool
-     */
-    protected function shouldRunValidation(array $input, $rules, $field)
-    {
-        return in_array('required', $rules) || (isset($input[$field]) && trim($input[$field]) != '');
-    }
-
-    // ** ------------------------- Filters --------------------------------------- ** //
-
-    /**
-     * Translate an input string to a desired language [DEPRECIATED].
-     *
-     * Any ISO 639-1 2 character language code may be used
-     *
-     * See: http://www.science.co.il/language/Codes.asp?s=code2
-     *
-     * @param string $value
-     * @param array  $args
-     *
-     * @return string
-     */
-    /*
-    protected function filter_translate($value, $args = NULL)
-    {
-        $input_lang  = 'en';
-        $output_lang = 'en';
-
-        if(is_null($args))
-        {
-            return $value;
-        }
-
-        switch(count($args))
-        {
-            case 1:
-                $input_lang  = $args[0];
-                break;
-            case 2:
-                $input_lang  = $args[0];
-                $output_lang = $args[1];
-                break;
-        }
-
-        $text = urlencode($value);
-
-        $translation = file_get_contents(
-            "http://ajax.googleapis.com/ajax/services/language/translate?v=1.0&q={$text}&langpair={$input_lang}|{$output_lang}"
-        );
-
-        $json = json_decode($translation, true);
-
-        if($json['responseStatus'] != 200)
-        {
-            return $value;
-        }
-        else
-        {
-            return $json['responseData']['translatedText'];
-        }
-    }
-    */
 
     /**
      * Sanitize the string by urlencoding characters.
@@ -1135,7 +1060,7 @@ class Valigator
      */
     protected function sanitize_basichtmltags($value, $args = NULL)
     {
-        return strip_tags($value, self::$_basicHTMLTags);
+        return strip_tags($value, $this->_basicHTMLTags);
     }
 
     /**
@@ -1210,7 +1135,7 @@ class Valigator
 
         $value = " $value ";
 
-        $words = explode(',', self::$_enNoiseWords);
+        $words = explode(',', $this->_enNoiseWords);
 
         foreach ($words as $word) {
             $word = trim($word);
