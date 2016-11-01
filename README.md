@@ -48,4 +48,50 @@ Error messages emitted by validations (one per validation). Can be overwritten w
 `{args}` is replaced with delimited string of concatenated arguments to the filter  
 `{arg1}`, ..., `{argn}` are replaced with individual arguments to the filter if they exist (note that there is no {arg0})
 
+### The Gears and Wheels
+Its easier to proceed from here with an example. Lets say we want to validate the following fields:
+
+ * userName: required and must be an email ID
+ * firstName: required and must be a name
+ * lastName: required and must be a name
+ * creditCardNumber: not mandatory, but if provided must be a valid credit card number
+ * addressPINCode: not mandatory, but if provided must be a 6-digit number
+
+Yes, you noticed it, camelCase is just my preference.
+
+Now lets say we are receiving the following data in an array (if you are not receiving the data in an array, you will need to create an array):
+``` php
+// iteration 1
+$inputData = [
+  'salutation' => 'Mr.'                         // we aren't interested in validating this
+  'userName' => '',                             // invalid data as it is empty
+  'firstName' => '123',                         // invalid data as it isn't a name
+                                                // notice that lastName is missing
+  'creditCardNumber' => '0001-0001-0001-0001',  // not a valid credit card number
+                                                // notice that addressPINCode is missing
+]
+```
+Lets now create filters based on the data validation requirements we have, and add a few other useful things:
+``` php
+$myFilters = [
+  'userName' => [
+    'label' => 'Retail User Name',              // will overwrite default 'User Name'
+  ],
+  'firstName' => [
+                                                // label will default to 'First Name'
+  ],
+  'lastName' => [
+    'label' => 'Surname',                       // will overwrite default 'Last Name'
+  ],
+  'creditCardNumber' => [
+                                                // label will default to 'Credit Card Number'
+  ],
+  'addressPINCode' => [
+    'label' => 'Indian PIN Code',               // will overwrite default 'Address PIN Code'
+  ],
+
+];
+```
+
+
 #### Work-in-progress on documentation, but the class is ready for Production use.
