@@ -81,7 +81,7 @@ $myFilters = [
   ],
   'fullName' => [
     'label' => 'Name',                          // overrides default 'Full Name'
-    'sanitizations' => 'trim',
+    'sanitization' => 'trim',                   // singular 'sanitization' works too
   ],
   'creditCardNumber' => [
                                                 // label defaults to 'Credit Card Number'
