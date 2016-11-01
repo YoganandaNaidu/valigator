@@ -89,9 +89,21 @@ $myFilters = [
   'addressPINCode' => [
     'label' => 'Indian PIN Code',               // will overwrite default 'Address PIN Code'
   ],
-
 ];
+
+// Important Notes:
+//  1. 'userName', 'firstName', 'lastName', 'creditCardNumber' and addressPINCode are our
+//     'fields' of interest
+//  2. Field names are case-sensitive: 'userName' is not the same as 'username'
+//  3. The order of running filters is as follows:
+//     a. All sanitizations first (if they exist) in order: 'userName' to 'addressPINCode'
+//     b. Then all validations (if they exist) in order:  'userName' to 'addressPINCode'
+//  4. If there are validation errors, they will be reported in exactly the same order, so
+//     if you want some errors to be reported higher than the others, place the field higher
 ```
+// Our fields of interest are:
+// userName, firstName, lastname, creditCardNumber and addressPINCode
+// Notice that field names are case-sensitive, so 'userName' is not the same as 'username'
 
 
 #### Work-in-progress on documentation, but the class is ready for Production use.
